@@ -1,0 +1,13 @@
+# Pastas locais de trabalho — não pertencem a este repo
+captura/
+calculator/
+clientes/
+docs/
+mentor/
+
+# Dependências
+node_modules/
+
+# Build
+dist/
+.env
