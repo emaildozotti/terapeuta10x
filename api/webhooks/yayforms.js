@@ -22,15 +22,24 @@ const CF = {
   NOTAS: '8ccf9033-bd4e-408d-80be-d9705194bea9',
 };
 
-// Yay Forms field IDs
-const YAY_FIELDS = {
+// Yay Forms field IDs — Terapeuta 10x (form principal)
+const YAY_T10X = {
   NOME: 'f_6977e14dc21e440efc0ae936',
   TELEFONE: 'f_6977e163b8950cf620090daa',
   INSTAGRAM: 'f_6977e1a52f09648070066c33',
 };
 
-// Dropdown option ID for "Yay Forms"
-const FONTE_YAY_FORMS = '2ec13cdf-d6ef-4878-abdd-fb95c546714a';
+// Yay Forms field IDs — Calculadora 10x
+const YAY_CALC = {
+  NOME: 'f_69cbecda6439e1a50c07d119',
+  TELEFONE: 'f_69cbed6cdaf74c782001cd1a',
+};
+
+// Dropdown option IDs for Fonte
+const FONTE_OPTIONS = {
+  YAY_FORMS: '2ec13cdf-d6ef-4878-abdd-fb95c546714a',
+  LP_CALCULATOR: 'da9d92ab-fe4c-4ce6-adfa-7b07f5e57697',
+};
 
 export default async function handler(req, res) {
   // Only accept POST
@@ -41,26 +50,29 @@ export default async function handler(req, res) {
   try {
     const payload = req.body;
 
-    // Extract lead data from Yay Forms payload
-    const nome = payload[YAY_FIELDS.NOME] || payload.name || 'Lead sem nome';
-    const telefone = payload[YAY_FIELDS.TELEFONE] || '';
-    const instagram = payload[YAY_FIELDS.INSTAGRAM] || '';
+    // Detect which form sent the webhook (Terapeuta 10x or Calculadora 10x)
+    const isCalculadora = !!payload[YAY_CALC.NOME];
+    const isT10x = !!payload[YAY_T10X.NOME];
+
+    // Extract lead data — try both forms
+    const nome = payload[YAY_T10X.NOME] || payload[YAY_CALC.NOME] || payload.name || '';
+    const telefone = payload[YAY_T10X.TELEFONE] || payload[YAY_CALC.TELEFONE] || '';
+    const instagram = payload[YAY_T10X.INSTAGRAM] || '';
     const responseId = payload.id || payload.responseId || '';
     const status = payload.status || '';
 
-    // Only process completed responses
-    if (status === 'partial' && !nome) {
-      return res.status(200).json({ ok: true, skipped: true, reason: 'partial without name' });
-    }
+    // Determine source
+    const fonte = isCalculadora ? FONTE_OPTIONS.LP_CALCULATOR : FONTE_OPTIONS.YAY_FORMS;
+    const fonteLabel = isCalculadora ? 'Calculadora 10x' : 'Terapeuta 10x';
 
-    // Skip if no name
-    if (!nome || nome === 'Lead sem nome') {
+    // Only process if has name
+    if (!nome) {
       return res.status(200).json({ ok: true, skipped: true, reason: 'no name' });
     }
 
     // Build custom fields
     const customFields = [
-      { id: CF.FONTE, value: FONTE_YAY_FORMS },
+      { id: CF.FONTE, value: fonte },
       { id: CF.YAY_RESPONSE_ID, value: responseId },
       { id: CF.VALOR_PROPOSTO, value: 300000 }, // R$ 3.000 in cents
     ];
@@ -69,8 +81,14 @@ export default async function handler(req, res) {
       customFields.push({ id: CF.TELEFONE, value: telefone });
     }
 
-    if (instagram) {
-      customFields.push({ id: CF.NOTAS, value: `Instagram: ${instagram}` });
+    // Notes with source and extra info
+    const notas = [
+      `Fonte: ${fonteLabel}`,
+      instagram ? `Instagram: ${instagram}` : '',
+    ].filter(Boolean).join('\n');
+
+    if (notas) {
+      customFields.push({ id: CF.NOTAS, value: notas });
     }
 
     // Create task in ClickUp
