@@ -23,8 +23,20 @@ const CF = {
   NOTAS: '8ccf9033-bd4e-408d-80be-d9705194bea9',
 };
 
-// Dropdown option for fonte "Indicacao" (Cal.com bookings are usually direct/referral)
-const FONTE_INDICACAO = '65091288-4253-401b-9afd-6ffaf4974205';
+// Dropdown option IDs for Fonte
+const FONTE_OPTIONS = {
+  LP_CAPTURA: '18dcb3c4-79f5-46fc-aab2-f378a3f9fc4d',    // LP Captura
+  LP_CALCULATOR: 'da9d92ab-fe4c-4ce6-adfa-7b07f5e57697',  // LP Calculator
+  LP_MENTOR: 'e6010070-c2f0-41bc-9cfa-a1bcea6919e9',      // LP Mentor
+  INDICACAO: '65091288-4253-401b-9afd-6ffaf4974205',       // Indicacao
+};
+
+// Cal.com event slugs → ClickUp fonte + tag
+const EVENT_TYPE_MAP = {
+  'sessao-estrategica': { fonte: FONTE_OPTIONS.LP_MENTOR, tag: 'mentor', label: 'Sessao Estrategica (Mentor)' },
+  'setup': { fonte: FONTE_OPTIONS.LP_CAPTURA, tag: 'setup', label: 'Setup de Campanha' },
+  't10x': { fonte: FONTE_OPTIONS.LP_CAPTURA, tag: 'webinar', label: 'Terapeuta 10x (Call)' },
+};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -35,7 +47,7 @@ export default async function handler(req, res) {
     const payload = req.body;
     const triggerEvent = payload.triggerEvent || '';
 
-    // Only process booking created
+    // Only process booking created/rescheduled
     if (triggerEvent === 'BOOKING_CANCELLED') {
       return res.status(200).json({ ok: true, skipped: true, reason: 'cancelled booking' });
     }
@@ -51,13 +63,21 @@ export default async function handler(req, res) {
     const bookingId = String(booking.bookingId || booking.uid || '');
     const startTime = booking.startTime || '';
 
+    // Detect event type from slug
+    const eventTypeSlug = booking.eventType?.slug || booking.type || '';
+    const eventConfig = EVENT_TYPE_MAP[eventTypeSlug] || {
+      fonte: FONTE_OPTIONS.INDICACAO,
+      tag: 'calcom',
+      label: eventTypeSlug || 'Cal.com'
+    };
+
     if (!nome || nome === 'Lead Cal.com') {
       return res.status(200).json({ ok: true, skipped: true, reason: 'no attendee name' });
     }
 
     // Build custom fields
     const customFields = [
-      { id: CF.FONTE, value: FONTE_INDICACAO },
+      { id: CF.FONTE, value: eventConfig.fonte },
       { id: CF.VALOR_PROPOSTO, value: 300000 },
     ];
 
@@ -78,8 +98,16 @@ export default async function handler(req, res) {
       customFields.push({ id: CF.DATA_AGENDAMENTO, value: timestamp });
     }
 
-    const notas = `Fonte: Cal.com (${triggerEvent})\nEvento: ${booking.title || ''}\nHorario: ${startTime}`;
+    const notas = `Fonte: ${eventConfig.label}\nEvento: ${booking.title || ''}\nHorario: ${startTime}\nTrigger: ${triggerEvent}`;
     customFields.push({ id: CF.NOTAS, value: notas });
+
+    // Determine ClickUp status based on event type
+    // Setup = internal (client already paid) → don't create Lead
+    // Sessao Estrategica / T10x = new lead → create with "Agendado"
+    const isSetup = eventTypeSlug === 'setup';
+    if (isSetup) {
+      return res.status(200).json({ ok: true, skipped: true, reason: 'setup booking (internal, not a new lead)' });
+    }
 
     // Create Lead in ClickUp
     const clickupRes = await fetch(`https://api.clickup.com/api/v2/list/${LEADS_LIST_ID}/task`, {
@@ -90,7 +118,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         name: nome,
-        status: 'agendado',  // Already has a booking = Agendado
+        status: 'agendado',
+        tags: [eventConfig.tag],
         custom_fields: customFields,
         notify_all: false,
       }),
