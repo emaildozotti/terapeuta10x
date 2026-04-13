@@ -158,6 +158,16 @@ function clean(s) {
   return String(s).replace(/<[^>]*>/g, '').trim();
 }
 
+// Remove acentos para matching tolerante
+function deaccent(s) {
+  return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Versao lowercase+deaccent pra comparacao
+function norm(s) {
+  return deaccent(clean(s)).toLowerCase();
+}
+
 // Map Yay answer text -> ClickUp option ID (com tolerancia a typos minimos)
 function mapOption(yayText, optionMap) {
   const text = clean(yayText);
@@ -172,10 +182,11 @@ function mapOption(yayText, optionMap) {
   return null;
 }
 
-// Yay manda faturamento como "<p>De R$ 2.000,00 a R$5.000,00</p>" — normaliza
+// Todos os mapeamentos usam norm() = clean + deaccent + lowercase
+
 function mapFaturamento(yayText) {
-  const t = clean(yayText).toLowerCase();
-  if (t.includes('ate r$ 2') || t.includes('até r$ 2')) return OPT.faturamento['Ate R$ 2.000'];
+  const t = norm(yayText);
+  if (t.includes('ate r$ 2') || t.includes('ate 2')) return OPT.faturamento['Ate R$ 2.000'];
   if (t.includes('2.000') && t.includes('5.000')) return OPT.faturamento['R$ 2.000 a R$ 5.000'];
   if (t.includes('5.000') && t.includes('10.000')) return OPT.faturamento['R$ 5.000 a R$ 10.000'];
   if (t.includes('acima') || t.includes('10.000')) return OPT.faturamento['Acima de R$ 10.000'];
@@ -183,7 +194,7 @@ function mapFaturamento(yayText) {
 }
 
 function mapEspecialidadeT10x(yayText) {
-  const t = clean(yayText).toLowerCase();
+  const t = norm(yayText);
   if (t.startsWith('psicolog')) return OPT.especialidade['Psicologo(a)'];
   if (t.startsWith('psicanal')) return OPT.especialidade['Psicanalista'];
   if (t.startsWith('terapeut')) return OPT.especialidade['Terapeuta'];
@@ -191,7 +202,7 @@ function mapEspecialidadeT10x(yayText) {
 }
 
 function mapEspecialidadeCalc(yayText) {
-  const t = clean(yayText).toLowerCase();
+  const t = norm(yayText);
   if (t.startsWith('psicolog')) return OPT.especialidade['Psicologa'];
   if (t.startsWith('psicanal')) return OPT.especialidade['Psicanalista'];
   if (t.startsWith('terapeut')) return OPT.especialidade['Terapeuta'];
@@ -199,8 +210,8 @@ function mapEspecialidadeCalc(yayText) {
 }
 
 function mapDor(yayText) {
-  const t = clean(yayText).toLowerCase();
-  if (t.includes('nao chegam') || t.includes('não chegam')) return OPT.dor['Nao chegam pessoas interessadas'];
+  const t = norm(yayText);
+  if (t.includes('nao chegam')) return OPT.dor['Nao chegam pessoas interessadas'];
   if (t.includes('perguntam')) return OPT.dor['Perguntam preco e somem'];
   if (t.includes('vergonha')) return OPT.dor['Vergonha de vender/cobrar'];
   if (t.includes('cobro pouco')) return OPT.dor['Cobro pouco'];
@@ -208,61 +219,77 @@ function mapDor(yayText) {
 }
 
 function mapCapital(yayText) {
-  const t = clean(yayText).toLowerCase();
+  const t = norm(yayText);
   if (t.includes('sim') && t.includes('ciente') && t.includes('capital')) return OPT.capital['Sim, ciente'];
   if (t.includes('sim') && t.includes('parcelamento')) return OPT.capital['Sim, precisa parcelar'];
-  if (t.includes('nao') || t.includes('não')) return OPT.capital['Nao consigo investir'];
+  if (t.startsWith('nao')) return OPT.capital['Nao consigo investir'];
   return null;
 }
 
 function mapMomento(yayText) {
-  const t = clean(yayText).toLowerCase();
-  if (t.includes('comecando') || t.includes('começando') || t.includes('zero')) return OPT.momento['Comecando do zero'];
-  if (t.includes('convenio') || t.includes('convênio') || t.includes('social')) return OPT.momento['Pacientes mas convenio/social'];
+  const t = norm(yayText);
+  if (t.includes('comecando') || t.includes('zero')) return OPT.momento['Comecando do zero'];
+  if (t.includes('convenio') || t.includes('social')) return OPT.momento['Pacientes mas convenio/social'];
   if (t.includes('oscila')) return OPT.momento['Particular oscilante'];
   if (t.includes('cheia') || t.includes('cobrar mais')) return OPT.momento['Agenda cheia, quer cobrar mais'];
   return null;
 }
 
 function mapCompromisso(yayText) {
-  const t = clean(yayText).toLowerCase();
+  const t = norm(yayText);
   return t.includes('sim') ? OPT.compromisso['Sim, comprometido'] : OPT.compromisso['Nao'];
 }
 
-// Capacidade/Atende vem como "1 a 5", "Mais de 20" etc — match direto
+// Capacidade/Atende vem como "1 a 5", "Mais de 20" etc
 function mapCapacidade(yayText) {
-  return mapOption(yayText, OPT.capacidade);
+  const t = norm(yayText);
+  if (t.startsWith('1 a 5')) return OPT.capacidade['1 a 5'];
+  if (t.startsWith('6 a 10')) return OPT.capacidade['6 a 10'];
+  if (t.startsWith('11 a 20')) return OPT.capacidade['11 a 20'];
+  if (t.includes('mais de 20')) return OPT.capacidade['Mais de 20'];
+  return null;
 }
 function mapAtende(yayText) {
-  return mapOption(yayText, OPT.atende);
+  const t = norm(yayText);
+  if (t.startsWith('0 a 2')) return OPT.atende['0 a 2'];
+  if (t.startsWith('3 a 5')) return OPT.atende['3 a 5'];
+  if (t.startsWith('6 a 10')) return OPT.atende['6 a 10'];
+  if (t.startsWith('11 a 20')) return OPT.atende['11 a 20'];
+  if (t.includes('mais de 20')) return OPT.atende['Mais de 20'];
+  return null;
 }
 function mapValorFaixa(yayText) {
-  const t = clean(yayText);
-  // Calculator: "Até R$100" -> "Ate R$ 100" (limpa acentos e ajusta espacos)
-  const norm = t.toLowerCase().replace(/é/g, 'e').replace(/r\$\s*/g, 'r$ ');
-  if (norm.includes('ate r$ 100') && !norm.includes('200')) return OPT.valorFaixa['Ate R$ 100'];
-  if (norm.includes('100') && norm.includes('200')) return OPT.valorFaixa['R$ 100 a R$ 200'];
-  if (norm.includes('200') && norm.includes('350')) return OPT.valorFaixa['R$ 200 a R$ 350'];
-  if (norm.includes('350') && norm.includes('500')) return OPT.valorFaixa['R$ 350 a R$ 500'];
-  if (norm.includes('acima') || norm.includes('500')) return OPT.valorFaixa['Acima de R$ 500'];
-  if (norm.includes('pacote')) return OPT.valorFaixa['Vende pacotes'];
+  const t = norm(yayText);
+  if (t.includes('pacote')) return OPT.valorFaixa['Vende pacotes'];
+  if (t.includes('acima') || (t.includes('500') && !t.includes('350'))) return OPT.valorFaixa['Acima de R$ 500'];
+  if (t.includes('350') && t.includes('500')) return OPT.valorFaixa['R$ 350 a R$ 500'];
+  if (t.includes('200') && t.includes('350')) return OPT.valorFaixa['R$ 200 a R$ 350'];
+  if (t.includes('100') && t.includes('200')) return OPT.valorFaixa['R$ 100 a R$ 200'];
+  if (t.includes('ate') && t.includes('100')) return OPT.valorFaixa['Ate R$ 100'];
   return null;
 }
 
 // Calcula Potencial Perdido em R$/mes:
 // (capacidade_max - atende_max) * 4 semanas * valor_medio_sessao
 function calcPotencial(capacidadeText, atendeText, valorFaixaText) {
-  const ranges = {
-    '1 a 5': 5, '6 a 10': 10, '11 a 20': 20, 'Mais de 20': 25,
-    '0 a 2': 2, '3 a 5': 5,
-  };
-  const cap = ranges[clean(capacidadeText)] || 0;
-  const at  = ranges[clean(atendeText)] || 0;
-  const valores = {
-    'Ate R$ 100': 80, 'R$ 100 a R$ 200': 150, 'R$ 200 a R$ 350': 275,
-    'R$ 350 a R$ 500': 425, 'Acima de R$ 500': 600, 'Vende pacotes': 500,
-  };
-  const valor = valores[clean(valorFaixaText)] || 200;
+  const capMap = { '1 a 5': 5, '6 a 10': 10, '11 a 20': 20, 'mais de 20': 25 };
+  const atMap  = { '0 a 2': 2, '3 a 5': 5, '6 a 10': 10, '11 a 20': 20, 'mais de 20': 25 };
+
+  const capKey = norm(capacidadeText);
+  const atKey  = norm(atendeText);
+  const cap = capMap[capKey] || Object.entries(capMap).find(([k]) => capKey.includes(k))?.[1] || 0;
+  const at  = atMap[atKey] || Object.entries(atMap).find(([k]) => atKey.includes(k))?.[1] || 0;
+
+  // Valor medio da faixa
+  const valKey = norm(valorFaixaText);
+  let valor = 200;
+  if (valKey.includes('ate') && valKey.includes('100')) valor = 80;
+  else if (valKey.includes('100') && valKey.includes('200')) valor = 150;
+  else if (valKey.includes('200') && valKey.includes('350')) valor = 275;
+  else if (valKey.includes('350') && valKey.includes('500')) valor = 425;
+  else if (valKey.includes('acima') || valKey.includes('500')) valor = 600;
+  else if (valKey.includes('pacote')) valor = 500;
+
   const vagas = Math.max(0, cap - at);
   return vagas * 4 * valor; // R$/mes
 }
