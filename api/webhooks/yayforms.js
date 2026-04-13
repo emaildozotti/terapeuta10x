@@ -404,43 +404,66 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, skipped: true, reason: 'no name' });
     }
 
-    // ============ Create task in ClickUp ============
-    const taskBody = {
-      name: leadName,
-      status: 'novo',
-      custom_fields: customFields,
-      notify_all: false,
-    };
-
-    const clickupRes = await fetch(`https://api.clickup.com/api/v2/list/${LEADS_LIST_ID}/task`, {
+    // ============ Create task (apenas nome + status) ============
+    // Estrategia resiliente: criar task primeiro, setar campos depois individualmente.
+    // Assim 1 campo invalido nao bloqueia o lead inteiro.
+    const createRes = await fetch(`https://api.clickup.com/api/v2/list/${LEADS_LIST_ID}/task`, {
       method: 'POST',
-      headers: {
-        'Authorization': CLICKUP_TOKEN,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(taskBody),
+      headers: { 'Authorization': CLICKUP_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: leadName,
+        status: 'novo',
+        notify_all: false,
+      }),
     });
 
-    const clickupData = await clickupRes.json();
+    const clickupData = await createRes.json();
 
-    if (!clickupRes.ok) {
-      console.error('[yayforms] ClickUp error:', clickupData);
+    if (!createRes.ok) {
+      console.error('[yayforms] ClickUp task create failed:', clickupData);
       return res.status(500).json({
         ok: false,
-        error: clickupData.err || 'ClickUp API error',
+        error: clickupData.err || 'ClickUp task create failed',
         clickup: clickupData,
       });
     }
 
-    console.log(`[yayforms] OK: ${leadName} -> ${clickupData.id} (${formLabel}, ${customFields.length} fields)`);
+    const taskId = clickupData.id;
+
+    // ============ Set custom fields individualmente ============
+    const fieldResults = [];
+    for (const cf of customFields) {
+      try {
+        const r = await fetch(`https://api.clickup.com/api/v2/task/${taskId}/field/${cf.id}`, {
+          method: 'POST',
+          headers: { 'Authorization': CLICKUP_TOKEN, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: cf.value }),
+        });
+        if (!r.ok) {
+          const errBody = await r.json().catch(() => ({}));
+          console.warn(`[yayforms] field ${cf.id} failed:`, errBody.err || r.status);
+          fieldResults.push({ id: cf.id, ok: false, err: errBody.err });
+        } else {
+          fieldResults.push({ id: cf.id, ok: true });
+        }
+      } catch (e) {
+        console.warn(`[yayforms] field ${cf.id} exception:`, e.message);
+        fieldResults.push({ id: cf.id, ok: false, err: e.message });
+      }
+    }
+
+    const okCount = fieldResults.filter(r => r.ok).length;
+    const failCount = fieldResults.length - okCount;
+    console.log(`[yayforms] OK: ${leadName} -> ${taskId} (${formLabel}, ${okCount}/${fieldResults.length} fields, ${failCount} failed)`);
 
     return res.status(200).json({
       ok: true,
       lead: leadName,
-      taskId: clickupData.id,
+      taskId: taskId,
       taskUrl: clickupData.url,
       form: formLabel,
-      fieldsSet: customFields.length,
+      fieldsSet: okCount,
+      fieldsFailed: failCount,
     });
 
   } catch (error) {
