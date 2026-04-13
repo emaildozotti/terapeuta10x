@@ -303,16 +303,37 @@ export default async function handler(req, res) {
   }
 
   try {
-    const payload = req.body || {};
-    console.log('[yayforms] payload received:', JSON.stringify(payload).slice(0, 500));
+    const rawPayload = req.body || {};
+    console.log('[yayforms] payload received:', JSON.stringify(rawPayload).slice(0, 300));
 
-    // Detect form
+    // Yay envia o payload NESTED: { response: { answers: [...] } }
+    // Normaliza pra objeto flat: { fieldId: content }
+    let payload = {};
+    let responseMeta = {};
+
+    if (rawPayload.response && Array.isArray(rawPayload.response.answers)) {
+      // Formato V2 (nested — o real)
+      responseMeta = rawPayload.response;
+      for (const a of rawPayload.response.answers) {
+        const fid = a.field || a.fieldId;
+        if (!fid) continue;
+        let content = a.content;
+        // Multiple-choice vem como array: ["Terapeuta"] → pega primeiro
+        if (Array.isArray(content)) content = content[0] || '';
+        payload[fid] = content;
+      }
+    } else {
+      // Formato flat (backward compat)
+      payload = rawPayload;
+    }
+
+    // Detect form via field IDs presentes
     const isCalc = !!payload[CALC.NOME];
     const isT10x = !!payload[T10X.NOME];
 
     if (!isCalc && !isT10x) {
-      console.warn('[yayforms] unknown form, no name field detected');
-      return res.status(200).json({ ok: true, skipped: true, reason: 'unknown form' });
+      console.warn('[yayforms] unknown form, no name field detected. Keys:', Object.keys(payload).slice(0, 10));
+      return res.status(200).json({ ok: true, skipped: true, reason: 'unknown form', keys: Object.keys(payload) });
     }
 
     const formLabel = isCalc ? 'Calculadora 10x' : 'Terapeuta 10x';
@@ -388,12 +409,17 @@ export default async function handler(req, res) {
     }
 
     // ============ UTM tracking ============
-    // Yay envia UTM no objeto raiz como "utm_source", "utm_medium", "utm_campaign"
-    // Pode vir tambem em "tracking" ou "hidden"
-    const utm = payload.utm || payload.tracking || payload.hidden || {};
-    const utmSource = payload.utm_source || utm.utm_source || utm.source;
-    const utmMedium = payload.utm_medium || utm.utm_medium || utm.medium;
-    const utmCampaign = payload.utm_campaign || utm.utm_campaign || utm.campaign;
+    // Yay envia UTM dentro de response.hiddenFields ou response.tracking (formato V2)
+    // Pode tambem vir no root (formato flat/backward compat)
+    const hiddenArr = responseMeta.hiddenFields || rawPayload.hiddenFields || [];
+    const trackingArr = responseMeta.tracking || rawPayload.tracking || [];
+    const utmMap = {};
+    for (const h of [...hiddenArr, ...trackingArr]) {
+      if (h && h.name && h.value) utmMap[h.name] = h.value;
+    }
+    const utmSource = utmMap.utm_source || rawPayload.utm_source;
+    const utmMedium = utmMap.utm_medium || rawPayload.utm_medium;
+    const utmCampaign = utmMap.utm_campaign || rawPayload.utm_campaign;
 
     if (utmSource) push(F.UTM_SOURCE, String(utmSource));
     if (utmMedium) push(F.UTM_MEDIUM, String(utmMedium));
