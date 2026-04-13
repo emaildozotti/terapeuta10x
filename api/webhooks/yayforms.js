@@ -436,11 +436,15 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
+      version: 'v3-deaccent-2026-04-13',
       lead: leadName,
       taskId: clickupData.id,
       taskUrl: clickupData.url,
       form: formLabel,
       fieldsSet: customFields.length,
+      debug: {
+        sampleNorm: isT10x ? norm(payload[T10X.ESPECIALIDADE]) : norm(payload[CALC.AREA]),
+      },
     });
 
   } catch (error) {
