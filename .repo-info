@@ -1,0 +1,5 @@
+repo: emaildozotti/terapeuta10x
+url: https://github.com/emaildozotti/terapeuta10x
+vercel: https://terapeuta10x.vercel.app
+git: .git neste diretorio
+push: git push origin main (direto daqui)
