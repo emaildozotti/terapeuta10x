@@ -523,12 +523,15 @@ async function markSynced(leadId, taskId, taskUrl, fieldsSynced, fieldsFailed) {
 }
 
 /**
- * Retorna true se o lead virou dead_letter nesta chamada.
- * PostgREST RPC pode retornar array ou objeto, tratamos ambos.
+ * Marca lead como failed/dead_letter via RPC.
+ * Depois faz SELECT direto pra confirmar o status final (mais confiavel
+ * que parsear o return da RPC que tem comportamento inconsistente).
+ * Retorna true se o lead virou dead_letter.
  */
 async function markFailed(leadId, errorMsg) {
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/mark_lead_failed`, {
+    // 1. Chama RPC pra atualizar (nao confia no return)
+    await fetch(`${SUPABASE_URL}/rest/v1/rpc/mark_lead_failed`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_SERVICE_ROLE_KEY,
@@ -540,13 +543,22 @@ async function markFailed(leadId, errorMsg) {
         p_error: errorMsg.slice(0, 500),
       }),
     });
-    if (r.ok) {
-      const result = await r.json().catch(() => null);
-      // PostgREST retorna o row diretamente (nao array) pra RETURNS table type
-      // Mas pode variar — tratamos ambos os casos
-      if (!result) return false;
-      const row = Array.isArray(result) ? result[0] : result;
-      return row && row.status === 'dead_letter';
+
+    // 2. SELECT direto pra confirmar status final
+    const checkRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/leads_staging?id=eq.${leadId}&select=status`,
+      {
+        headers: {
+          'apikey': SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      }
+    );
+    if (checkRes.ok) {
+      const rows = await checkRes.json().catch(() => []);
+      const finalStatus = Array.isArray(rows) && rows[0] ? rows[0].status : null;
+      console.log(`[sync-leads] markFailed: lead ${leadId} final status = ${finalStatus}`);
+      return finalStatus === 'dead_letter';
     }
   } catch (e) {
     console.error('[sync-leads] markFailed failed:', e.message);
