@@ -28,6 +28,7 @@ const LEADS_LIST_ID = '901712860975';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DISCORD_ALERT_WEBHOOK_URL = process.env.DISCORD_ALERT_WEBHOOK_URL;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 // ============================================================
 // CLICKUP CUSTOM FIELD IDs (V5 — 2026-04-13)
@@ -343,9 +344,22 @@ async function sendDiscordAlert(content) {
 // HANDLER (Vercel Cron)
 // ============================================================
 export default async function handler(req, res) {
-  // Vercel Cron sempre chama via GET
+  // Aceita GET (cron-job.org, browser test) e POST (vercel cron, manual curl)
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Auth check: precisa passar secret via header ou query param
+  // cron-job.org envia via custom header `x-cron-secret`
+  if (CRON_SECRET) {
+    const provided =
+      req.headers['x-cron-secret'] ||
+      req.query?.secret ||
+      (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    if (provided !== CRON_SECRET) {
+      console.warn('[sync-leads] unauthorized access attempt');
+      return res.status(401).json({ ok: false, error: 'unauthorized' });
+    }
   }
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !CLICKUP_TOKEN) {

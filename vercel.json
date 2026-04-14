@@ -1,11 +1,5 @@
 {
   "buildCommand": "vite build",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "crons": [
-    {
-      "path": "/api/cron/sync-leads",
-      "schedule": "*/1 * * * *"
-    }
-  ]
+  "framework": "vite"
 }
