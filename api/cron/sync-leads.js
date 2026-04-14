@@ -410,14 +410,16 @@ export default async function handler(req, res) {
       // Extrair customFields do payload
       const parsed = extractCustomFieldsFromPayload(payload);
       if (parsed.error) {
-        await markFailed(leadId, `parse error: ${parsed.error}`);
+        const wasDeadLetter = await markFailed(leadId, `parse error: ${parsed.error}`);
+        if (wasDeadLetter) stats.deadLettered++;
         stats.failed++;
         continue;
       }
 
       const { leadName, customFields } = parsed;
       if (!leadName) {
-        await markFailed(leadId, 'no name in payload');
+        const wasDeadLetter = await markFailed(leadId, 'no name in payload');
+        if (wasDeadLetter) stats.deadLettered++;
         stats.failed++;
         continue;
       }
