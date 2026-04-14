@@ -524,6 +524,7 @@ async function markSynced(leadId, taskId, taskUrl, fieldsSynced, fieldsFailed) {
 
 /**
  * Retorna true se o lead virou dead_letter nesta chamada.
+ * PostgREST RPC pode retornar array ou objeto, tratamos ambos.
  */
 async function markFailed(leadId, errorMsg) {
   try {
@@ -541,7 +542,11 @@ async function markFailed(leadId, errorMsg) {
     });
     if (r.ok) {
       const result = await r.json().catch(() => null);
-      return result && result.status === 'dead_letter';
+      // PostgREST retorna o row diretamente (nao array) pra RETURNS table type
+      // Mas pode variar — tratamos ambos os casos
+      if (!result) return false;
+      const row = Array.isArray(result) ? result[0] : result;
+      return row && row.status === 'dead_letter';
     }
   } catch (e) {
     console.error('[sync-leads] markFailed failed:', e.message);
