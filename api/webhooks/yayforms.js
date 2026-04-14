@@ -480,25 +480,28 @@ export default async function handler(req, res) {
 
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
-        // INSERT com ON CONFLICT DO NOTHING (resolution=ignore-duplicates).
-        // Se reenvio do Yay (mesmo yay_response_id), retorna 201 vazio ou 200.
-        const stagingRes = await fetch(`${SUPABASE_URL}/rest/v1/leads_staging`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation,resolution=ignore-duplicates',
-          },
-          body: JSON.stringify({
-            yay_response_id: yayResponseId,
-            form_id: formId,
-            form_label: formLabel,
-            payload: rawPayload,
-            submitted_at: submittedAt,
-            status: 'pending',
-          }),
-        });
+        // PostgREST UPSERT: on_conflict=yay_response_id + ignore-duplicates
+        // Se duplicata, retorna 200 com array vazio (idempotent).
+        const stagingRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/leads_staging?on_conflict=yay_response_id`,
+          {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_SERVICE_ROLE_KEY,
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation,resolution=ignore-duplicates',
+            },
+            body: JSON.stringify({
+              yay_response_id: yayResponseId,
+              form_id: formId,
+              form_label: formLabel,
+              payload: rawPayload,
+              submitted_at: submittedAt,
+              status: 'pending',
+            }),
+          }
+        );
 
         if (stagingRes.ok) {
           const rows = await stagingRes.json().catch(() => []);
@@ -506,15 +509,41 @@ export default async function handler(req, res) {
             stagingId = rows[0].id;
             console.log(`[yayforms] staging INSERT ok: ${stagingId}`);
           } else {
-            // Conflict (duplicate) — Yay reenviou o mesmo response
+            // Duplicata — Yay reenviou o mesmo response (idempotent no-op)
             stagingSkipped = true;
-            console.log(`[yayforms] staging duplicate (yay_response_id=${yayResponseId})`);
+            console.log(`[yayforms] staging duplicate (yay_response_id=${yayResponseId}) — skipping ClickUp`);
+
+            // Busca o stagingId existente pra retornar na resposta
+            try {
+              const lookupRes = await fetch(
+                `${SUPABASE_URL}/rest/v1/leads_staging?yay_response_id=eq.${encodeURIComponent(yayResponseId)}&select=id,clickup_task_id,status`,
+                {
+                  headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                  },
+                }
+              );
+              const existing = await lookupRes.json().catch(() => []);
+              if (Array.isArray(existing) && existing.length > 0) {
+                // Retorna imediato sem tocar no ClickUp (ja foi processado)
+                return res.status(200).json({
+                  ok: true,
+                  duplicate: true,
+                  stagingId: existing[0].id,
+                  existingStatus: existing[0].status,
+                  existingClickupTaskId: existing[0].clickup_task_id,
+                  message: 'already processed, skipping',
+                });
+              }
+            } catch (e) {
+              console.warn('[yayforms] duplicate lookup failed:', e.message);
+            }
           }
         } else {
-          // Falha critica: Supabase retornou erro
+          // Falha critica: Supabase retornou erro (nao conflict)
           const errBody = await stagingRes.text().catch(() => '');
           console.error(`[yayforms] staging INSERT failed: ${stagingRes.status} ${errBody.slice(0, 300)}`);
-          // Retorna 500 pra forcar retry do Yay + alerta via logs
           return res.status(500).json({
             ok: false,
             error: 'supabase staging failed',
