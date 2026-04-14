@@ -409,14 +409,30 @@ export default async function handler(req, res) {
     }
 
     // ============ UTM tracking ============
-    // Yay envia UTM dentro de response.hiddenFields ou response.tracking (formato V2)
-    // Pode tambem vir no root (formato flat/backward compat)
-    const hiddenArr = responseMeta.hiddenFields || rawPayload.hiddenFields || [];
-    const trackingArr = responseMeta.tracking || rawPayload.tracking || [];
+    // Yay envia UTM em 2 formatos diferentes dependendo da submissao:
+    // 1. response.tracking como DICT: {utm_source: "...", utm_campaign: "..."}
+    // 2. response.hiddenFields como ARRAY: [{name, value}]
+    // Normaliza ambos em utmMap.
     const utmMap = {};
-    for (const h of [...hiddenArr, ...trackingArr]) {
-      if (h && h.name && h.value) utmMap[h.name] = h.value;
+
+    const hiddenFields = responseMeta.hiddenFields || rawPayload.hiddenFields;
+    if (Array.isArray(hiddenFields)) {
+      for (const h of hiddenFields) {
+        if (h && h.name && h.value != null) utmMap[h.name] = h.value;
+      }
+    } else if (hiddenFields && typeof hiddenFields === 'object') {
+      Object.assign(utmMap, hiddenFields);
     }
+
+    const tracking = responseMeta.tracking || rawPayload.tracking;
+    if (Array.isArray(tracking)) {
+      for (const t of tracking) {
+        if (t && t.name && t.value != null) utmMap[t.name] = t.value;
+      }
+    } else if (tracking && typeof tracking === 'object') {
+      Object.assign(utmMap, tracking);
+    }
+
     const utmSource = utmMap.utm_source || rawPayload.utm_source;
     const utmMedium = utmMap.utm_medium || rawPayload.utm_medium;
     const utmCampaign = utmMap.utm_campaign || rawPayload.utm_campaign;
