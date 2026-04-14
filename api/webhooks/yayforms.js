@@ -1,21 +1,30 @@
 /**
- * Webhook: Yay Forms -> ClickUp Leads V5
+ * Webhook: Yay Forms -> Supabase Staging + ClickUp (dual write)
  *
- * Recebe submissoes dos forms Yay (Terapeuta 10x e Calculadora 10x)
- * e cria leads automaticamente na lista Leads do ClickUp V5.
+ * V6 — 2026-04-14 — Dara (data-engineer)
  *
- * URL: https://terapeuta10x.vercel.app/api/webhooks/yayforms
- * Metodo: POST
+ * ARQUITETURA:
+ *   Yay POST → webhook → 1) Supabase leads_staging (source of truth)
+ *                        2) ClickUp Leads (behavior atual)
  *
- * Detecta automaticamente qual form via field IDs.
- * Mapeia 100% das perguntas para campos do ClickUp.
- * Calcula Potencial Perdido para leads vindos da Calculadora.
+ * PRIORIDADE: Supabase PRIMEIRO. Se Supabase falhar, webhook retorna 500
+ * (forca observabilidade via Vercel logs). Isso garante que nenhum lead
+ * entra no ClickUp sem estar primeiro no staging.
  *
- * Atualizado: 2026-04-13 — V5 alinhado com Yay (30 campos no Lead)
+ * Se ClickUp falhar, o lead ja esta salvo no staging — worker assincrono
+ * vai reprocessar depois (quando deployarmos v7 staging-only + worker).
+ *
+ * Idempotency: yay_response_id UNIQUE no Supabase. Reenvios do Yay
+ * (botao Reenviar nos Logs) nao criam duplicatas.
+ *
+ * Atualizado: 2026-04-14 — Dual write pattern (Dara)
  */
 
 const CLICKUP_TOKEN = process.env.CLICKUP_API_TOKEN;
 const LEADS_LIST_ID = '901712860975';
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // ============================================================
 // CLICKUP CUSTOM FIELD IDs (V5 — 2026-04-13)
@@ -446,9 +455,113 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, skipped: true, reason: 'no name' });
     }
 
+    // ============================================================
+    // SUPABASE STAGING — source of truth (escreve PRIMEIRO)
+    // ============================================================
+    // Extrai yay_response_id do payload (idempotency key).
+    // Se nao tiver, usa timestamp+nome como fallback (nao deveria acontecer).
+    const yayResponseId =
+      responseMeta?.id ||
+      rawPayload?.id ||
+      rawPayload?.responseId ||
+      `fallback_${Date.now()}_${leadName.replace(/\s+/g, '_').slice(0, 20)}`;
+
+    const submittedAt =
+      responseMeta?.submittedAt ||
+      responseMeta?.createdAt ||
+      new Date().toISOString();
+
+    const formId = isCalc
+      ? '69cbecc663fd4f3648019a7d'
+      : '6977e0c2405e1f13e702c452';
+
+    let stagingId = null;
+    let stagingSkipped = false;
+
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        // INSERT com ON CONFLICT DO NOTHING (resolution=ignore-duplicates).
+        // Se reenvio do Yay (mesmo yay_response_id), retorna 201 vazio ou 200.
+        const stagingRes = await fetch(`${SUPABASE_URL}/rest/v1/leads_staging`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation,resolution=ignore-duplicates',
+          },
+          body: JSON.stringify({
+            yay_response_id: yayResponseId,
+            form_id: formId,
+            form_label: formLabel,
+            payload: rawPayload,
+            submitted_at: submittedAt,
+            status: 'pending',
+          }),
+        });
+
+        if (stagingRes.ok) {
+          const rows = await stagingRes.json().catch(() => []);
+          if (Array.isArray(rows) && rows.length > 0) {
+            stagingId = rows[0].id;
+            console.log(`[yayforms] staging INSERT ok: ${stagingId}`);
+          } else {
+            // Conflict (duplicate) — Yay reenviou o mesmo response
+            stagingSkipped = true;
+            console.log(`[yayforms] staging duplicate (yay_response_id=${yayResponseId})`);
+          }
+        } else {
+          // Falha critica: Supabase retornou erro
+          const errBody = await stagingRes.text().catch(() => '');
+          console.error(`[yayforms] staging INSERT failed: ${stagingRes.status} ${errBody.slice(0, 300)}`);
+          // Retorna 500 pra forcar retry do Yay + alerta via logs
+          return res.status(500).json({
+            ok: false,
+            error: 'supabase staging failed',
+            status: stagingRes.status,
+            body: errBody.slice(0, 500),
+          });
+        }
+      } catch (e) {
+        // Network error / Supabase offline
+        console.error('[yayforms] staging exception:', e.message);
+        return res.status(500).json({
+          ok: false,
+          error: 'supabase staging exception',
+          message: e.message,
+        });
+      }
+    } else {
+      // Sem env vars do Supabase — avisa mas nao bloqueia (permite deploy gradual)
+      console.warn('[yayforms] SUPABASE_URL/SERVICE_ROLE_KEY not set, skipping staging');
+      stagingSkipped = true;
+    }
+
     // ============ Create task (apenas nome + status) ============
     // Estrategia resiliente: criar task primeiro, setar campos depois individualmente.
     // Assim 1 campo invalido nao bloqueia o lead inteiro.
+    // Helper pra atualizar staging no Supabase (fire and forget nao-bloqueante)
+    const updateStagingStatus = async (stagingRowId, updates) => {
+      if (!stagingRowId || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return;
+      try {
+        await fetch(
+          `${SUPABASE_URL}/rest/v1/leads_staging?id=eq.${stagingRowId}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'apikey': SUPABASE_SERVICE_ROLE_KEY,
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify(updates),
+          }
+        );
+      } catch (e) {
+        console.warn('[yayforms] updateStagingStatus failed:', e.message);
+      }
+    };
+
     const createRes = await fetch(`https://api.clickup.com/api/v2/list/${LEADS_LIST_ID}/task`, {
       method: 'POST',
       headers: { 'Authorization': CLICKUP_TOKEN, 'Content-Type': 'application/json' },
@@ -463,10 +576,19 @@ export default async function handler(req, res) {
 
     if (!createRes.ok) {
       console.error('[yayforms] ClickUp task create failed:', clickupData);
-      return res.status(500).json({
-        ok: false,
-        error: clickupData.err || 'ClickUp task create failed',
-        clickup: clickupData,
+      // Marca staging como failed (worker vai reprocessar depois)
+      await updateStagingStatus(stagingId, {
+        status: 'failed',
+        last_error: `clickup create failed: ${clickupData.err || createRes.status}`,
+        last_error_at: new Date().toISOString(),
+      });
+      // Retorna 200 (lead esta seguro no staging) com warning
+      return res.status(200).json({
+        ok: true,
+        warning: 'clickup create failed, lead saved in staging for retry',
+        stagingId,
+        stagingSkipped,
+        clickupError: clickupData.err || 'unknown',
       });
     }
 
@@ -498,6 +620,17 @@ export default async function handler(req, res) {
     const failCount = fieldResults.length - okCount;
     console.log(`[yayforms] OK: ${leadName} -> ${taskId} (${formLabel}, ${okCount}/${fieldResults.length} fields, ${failCount} failed)`);
 
+    // Marca staging como synced (ClickUp deu certo)
+    await updateStagingStatus(stagingId, {
+      status: 'synced',
+      clickup_task_id: taskId,
+      clickup_task_url: clickupData.url || null,
+      fields_synced: okCount,
+      fields_failed: failCount,
+      processed_at: new Date().toISOString(),
+      last_error: null,
+    });
+
     return res.status(200).json({
       ok: true,
       lead: leadName,
@@ -506,6 +639,8 @@ export default async function handler(req, res) {
       form: formLabel,
       fieldsSet: okCount,
       fieldsFailed: failCount,
+      stagingId,
+      stagingSkipped,
     });
 
   } catch (error) {
