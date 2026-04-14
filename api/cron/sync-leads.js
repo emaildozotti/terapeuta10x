@@ -349,17 +349,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Auth check: precisa passar secret via header ou query param
+  // Auth check: FAIL CLOSED (se CRON_SECRET nao configurada, bloqueia)
   // cron-job.org envia via custom header `x-cron-secret`
-  if (CRON_SECRET) {
-    const provided =
-      req.headers['x-cron-secret'] ||
-      req.query?.secret ||
-      (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-    if (provided !== CRON_SECRET) {
-      console.warn('[sync-leads] unauthorized access attempt');
-      return res.status(401).json({ ok: false, error: 'unauthorized' });
-    }
+  if (!CRON_SECRET) {
+    console.error('[sync-leads] CRON_SECRET not configured in env');
+    return res.status(500).json({ ok: false, error: 'CRON_SECRET not configured' });
+  }
+  const provided =
+    req.headers['x-cron-secret'] ||
+    req.query?.secret ||
+    (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (provided !== CRON_SECRET) {
+    console.warn('[sync-leads] unauthorized access attempt');
+    return res.status(401).json({ ok: false, error: 'unauthorized' });
   }
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !CLICKUP_TOKEN) {
