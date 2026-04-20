@@ -5,6 +5,7 @@ import { ExitIntentPopup } from './components/ExitIntentPopup';
 
 const App: React.FC = () => {
   return (
+    <>
     <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-between py-6 px-4 md:px-8 lg:px-16 overflow-hidden bg-brand-navy bg-gradient-to-br from-[#0A1929] via-[#0f233a] to-[#050c14]">
       {/* Noise Texture Overlay */}
       <div className="absolute inset-0 pointer-events-none bg-noise z-0 mix-blend-overlay opacity-30"></div>
@@ -57,6 +58,7 @@ const App: React.FC = () => {
       </footer>
     </main>
     <ExitIntentPopup />
+    </>
   );
 };
 
