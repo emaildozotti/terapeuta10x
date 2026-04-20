@@ -120,7 +120,7 @@ export const ExitIntentPopup: React.FC = () => {
             href={WPP_LINK}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={dismiss}
+            onClick={() => { (window as any).fbq?.('track', 'Contact'); dismiss(); }}
             className="block w-full text-center font-sans font-bold text-base text-white uppercase tracking-wide py-4 rounded-xl transition-all duration-300"
             style={{
               background: 'linear-gradient(135deg, #10B981, #059669)',
