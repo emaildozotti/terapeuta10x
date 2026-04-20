@@ -1,6 +1,7 @@
 import React from 'react';
 import { CtaButton } from './components/CtaButton';
 import { PriceAnchor } from './components/PriceAnchor';
+import { ExitIntentPopup } from './components/ExitIntentPopup';
 
 const App: React.FC = () => {
   return (
@@ -55,6 +56,7 @@ const App: React.FC = () => {
         </p>
       </footer>
     </main>
+    <ExitIntentPopup />
   );
 };
 
