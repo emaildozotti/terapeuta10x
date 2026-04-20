@@ -85,8 +85,8 @@ export const ExitIntentPopup: React.FC = () => {
             <span className="text-brand-gold italic">sua vaga!</span>
           </h2>
           <p className="font-sans text-sm text-white/70 leading-relaxed">
-            A aula acontece toda{' '}
-            <span className="text-brand-gold font-semibold">segunda-feira às 20h</span>{' '}
+            A aula acontece{' '}
+            <span className="text-brand-gold font-semibold">essa segunda às 20h</span>{' '}
             — e as vagas estão acabando.
           </p>
         </div>
