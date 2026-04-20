@@ -15,9 +15,6 @@ export const ExitIntentPopup: React.FC = () => {
   const dismiss = useCallback(() => setVisible(false), []);
 
   useEffect(() => {
-    // DEBUG: abre em 5s para confirmar que o componente renderiza
-    const debugTimer = setTimeout(show, 5000);
-
     // Desktop: mouse sai pelo topo do viewport
     const onMouseLeave = () => show();
     document.documentElement.addEventListener('mouseleave', onMouseLeave);
@@ -28,7 +25,6 @@ export const ExitIntentPopup: React.FC = () => {
     window.addEventListener('popstate', onPopState);
 
     return () => {
-      clearTimeout(debugTimer);
       document.documentElement.removeEventListener('mouseleave', onMouseLeave);
       window.removeEventListener('popstate', onPopState);
     };
