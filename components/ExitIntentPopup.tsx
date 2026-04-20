@@ -15,39 +15,22 @@ export const ExitIntentPopup: React.FC = () => {
   const dismiss = useCallback(() => setVisible(false), []);
 
   useEffect(() => {
-    // Desktop: mouse sai do viewport pelo topo (vai para barra de endereço/botão voltar)
-    const onMouseOut = (e: MouseEvent) => {
-      if (!e.relatedTarget && (e.target as Element)?.nodeName !== 'SELECT') {
-        show();
-      }
-    };
+    // DEBUG: abre em 5s para confirmar que o componente renderiza
+    const debugTimer = setTimeout(show, 5000);
 
-    // Back button / navegação
+    // Desktop: mouse sai pelo topo do viewport
+    const onMouseLeave = () => show();
+    document.documentElement.addEventListener('mouseleave', onMouseLeave);
+
+    // Back button
     const onPopState = () => show();
     history.pushState(null, '', location.href);
-
-    // Mobile: scroll rápido para cima
-    let lastScrollY = window.scrollY;
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const delta = lastScrollY - window.scrollY;
-        if (delta > 60 && window.scrollY < 80) show();
-        lastScrollY = window.scrollY;
-        ticking = false;
-      });
-    };
-
-    document.addEventListener('mouseout', onMouseOut);
     window.addEventListener('popstate', onPopState);
-    window.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      document.removeEventListener('mouseout', onMouseOut);
+      clearTimeout(debugTimer);
+      document.documentElement.removeEventListener('mouseleave', onMouseLeave);
       window.removeEventListener('popstate', onPopState);
-      window.removeEventListener('scroll', onScroll);
     };
   }, [show]);
 
