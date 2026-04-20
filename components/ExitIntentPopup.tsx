@@ -15,21 +15,18 @@ export const ExitIntentPopup: React.FC = () => {
   const dismiss = useCallback(() => setVisible(false), []);
 
   useEffect(() => {
-    // Desktop: mouse leaving viewport from the top
-    const onMouseLeave = (e: MouseEvent) => {
-      if (e.clientY <= 5) show();
+    // Desktop: mouse sai do viewport pelo topo (vai para barra de endereço/botão voltar)
+    const onMouseOut = (e: MouseEvent) => {
+      if (!e.relatedTarget && (e.target as Element)?.nodeName !== 'SELECT') {
+        show();
+      }
     };
 
-    // Back button / navigation
+    // Back button / navegação
     const onPopState = () => show();
-
-    // Push dummy state so back button triggers popstate before leaving
     history.pushState(null, '', location.href);
 
-    document.addEventListener('mouseleave', onMouseLeave);
-    window.addEventListener('popstate', onPopState);
-
-    // Mobile: fast scroll back to top
+    // Mobile: scroll rápido para cima
     let lastScrollY = window.scrollY;
     let ticking = false;
     const onScroll = () => {
@@ -43,10 +40,12 @@ export const ExitIntentPopup: React.FC = () => {
       });
     };
 
+    document.addEventListener('mouseout', onMouseOut);
+    window.addEventListener('popstate', onPopState);
     window.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      document.removeEventListener('mouseleave', onMouseLeave);
+      document.removeEventListener('mouseout', onMouseOut);
       window.removeEventListener('popstate', onPopState);
       window.removeEventListener('scroll', onScroll);
     };
