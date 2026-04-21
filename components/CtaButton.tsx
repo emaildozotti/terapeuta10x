@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const WPP_LINK = 'https://chat.whatsapp.com/CMbjRThGLWMCmbRDvqHR0N';
+export const WPP_LINK = 'https://chat.whatsapp.com/KJs0tufUsnLKMrtR8ThN5s';
 
 export const CtaButton: React.FC = () => {
   return (
