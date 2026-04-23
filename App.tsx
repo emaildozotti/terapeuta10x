@@ -26,13 +26,13 @@ const App: React.FC = () => {
 
         {/* 2. HEADLINE */}
         <h1 className="font-serif text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.15] font-bold text-balance drop-shadow-lg">
-          VOCÊ SE FORMOU PRA CUIDAR DE PESSOAS.{' '}
-          <span className="text-brand-gold">NÃO PRA FICAR ESPERANDO INDICAÇÃO.</span>
+          EM UMA ÚNICA AULA VOU ENTREGAR O PLANO PARA VOCÊ LOTAR SUA AGENDA{' '}
+          <span className="text-brand-gold">SEM CRIAR CONTEÚDO E SEM DEPENDER DE INDICAÇÃO.</span>
         </h1>
 
         {/* 3. SUB-HEADLINE */}
         <p className="font-sans text-sm sm:text-base md:text-xl lg:text-2xl text-brand-offwhite/80 max-w-3xl leading-relaxed text-balance">
-          Em uma aula ao vivo, vou mostrar o sistema exato que terapeutas usam para atrair pacientes particulares toda semana — sem depender de indicação, sem criar conteúdo no Instagram.
+          Você vai sair com o mapa, a estratégia de tráfego e o roteiro para atrair pacientes particulares recorrentes, resgatando sua liberdade e sua dignidade profissional.
         </p>
 
         {/* ACTION AREA */}
