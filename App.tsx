@@ -156,7 +156,7 @@ const App: React.FC = () => {
                   lineHeight: 1.6,
                 }}
               >
-                Quem participar ao vivo recebe uma surpresa exclusiva.
+                Quem participar ao vivo recebe<br />uma surpresa exclusiva.
               </p>
             </div>
 
