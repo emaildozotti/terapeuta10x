@@ -181,7 +181,7 @@ const App: React.FC = () => {
                   letterSpacing: '0.02em',
                 }}
               >
-                POR R$ 0
+                POR R$ 0,00
               </span>
             </div>
 
