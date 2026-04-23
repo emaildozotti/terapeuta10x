@@ -171,7 +171,7 @@ const App: React.FC = () => {
                   textDecorationColor: 'rgba(241,241,241,0.3)',
                 }}
               >
-                DE R$ 997,00
+                DE R$ 97,00
               </span>
               <span
                 className="font-sans font-bold"
@@ -197,7 +197,7 @@ const App: React.FC = () => {
                 letterSpacing: '0.04em',
               }}
             >
-              🔒 Evento gratuito. Exclusivo para terapeutas e psicanalistas.
+              🔒 Exclusivo para terapeutas e psicanalistas.
             </p>
 
           </div>
