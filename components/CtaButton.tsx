@@ -24,6 +24,7 @@ export const CtaButton: React.FC = () => {
         (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
       }}
       aria-label="Garantir minha vaga agora"
+      onClick={() => (window as any).fbq?.('track', 'Contact')}
     >
       {/* Shine sweep */}
       <div
