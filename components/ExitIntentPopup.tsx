@@ -15,8 +15,10 @@ export const ExitIntentPopup: React.FC = () => {
   const dismiss = useCallback(() => setVisible(false), []);
 
   useEffect(() => {
-    // Desktop: mouse sai pelo topo do viewport
-    const onMouseLeave = () => show();
+    // Desktop: mouse leaves through top of viewport
+    const onMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0) show();
+    };
     document.documentElement.addEventListener('mouseleave', onMouseLeave);
 
     // Back button
@@ -35,112 +37,135 @@ export const ExitIntentPopup: React.FC = () => {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(5, 12, 20, 0.88)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(5, 5, 5, 0.9)', backdropFilter: 'blur(5px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) dismiss(); }}
     >
       <div
-        className="relative w-full max-w-sm rounded-2xl overflow-hidden"
+        className="relative w-full overflow-hidden"
         style={{
-          background: 'linear-gradient(160deg, #1C1C1C 0%, #141414 60%, #0D0D0D 100%)',
-          border: '1px solid rgba(249,115,22,0.25)',
-          boxShadow: '0 0 60px rgba(249,115,22,0.08), 0 24px 48px rgba(0,0,0,0.6)',
+          maxWidth: '400px',
+          background: '#1A1A1A',
+          border: '1px solid rgba(249,115,22,0.3)',
+          borderRadius: '16px',
+          boxShadow: '0 0 60px rgba(249,115,22,0.1), 0 24px 48px rgba(0,0,0,0.7)',
         }}
       >
         {/* Top bar */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <div
+          className="flex items-center justify-between px-5 py-4"
+          style={{ borderBottom: '1px solid rgba(249,115,22,0.12)' }}
+        >
           <div className="flex items-center gap-2">
-            {/* Warning icon */}
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" stroke="#ef4444" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-              </svg>
-            </div>
-            {/* ESPERE badge */}
+            {/* Pulsing live dot */}
             <span
-              className="flex items-center gap-1.5 font-sans text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
-              style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+              className="flex-shrink-0 rounded-full"
+              style={{
+                width: '8px',
+                height: '8px',
+                backgroundColor: '#F97316',
+                boxShadow: '0 0 6px #F97316',
+                animation: 'pulse 1.6s ease-in-out infinite',
+                display: 'inline-block',
+              }}
+            />
+            <span
+              className="font-sans font-bold uppercase"
+              style={{ fontSize: '10px', letterSpacing: '0.2em', color: '#F97316' }}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
-              Espere!
+              ESPERE
             </span>
           </div>
           <button
             onClick={dismiss}
-            className="w-7 h-7 flex items-center justify-center rounded-full text-white/40 hover:text-white/70 transition-colors"
+            className="flex items-center justify-center rounded-full transition-colors"
+            style={{
+              width: '28px',
+              height: '28px',
+              color: 'rgba(241,241,241,0.35)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+            }}
             aria-label="Fechar"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: '14px', height: '14px' }}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-5 pb-2 text-center">
-          <h2 className="font-sans font-extrabold text-2xl sm:text-3xl leading-tight text-balance mb-3">
-            Você vai continuar{' '}
-            <span className="text-brand-gold italic">dependendo de indicação?</span>
+        <div className="px-6 pt-5 pb-4 text-center">
+          <h2
+            className="font-sans font-black"
+            style={{
+              fontSize: 'clamp(1.3rem, 5vw, 1.6rem)',
+              lineHeight: 1.2,
+              color: '#F1F1F1',
+              marginBottom: '12px',
+            }}
+          >
+            Voce vai mesmo sair sem garantir sua vaga?
           </h2>
-          <p className="font-sans text-sm text-white/70 leading-relaxed">
-            A aula é{' '}
-            <span className="text-brand-gold font-semibold">essa segunda às 20h</span>{' '}
-            — e é de graça. Não faz sentido perder.
+          <p
+            className="font-sans"
+            style={{
+              fontSize: '0.88rem',
+              color: 'rgba(241,241,241,0.65)',
+              lineHeight: 1.65,
+            }}
+          >
+            A aula e esta segunda as 20h, ao vivo. Se nao for pra voce, voce sai em 10 segundos. Sem custo, sem compromisso.
           </p>
         </div>
 
-        {/* Scarcity badge */}
-        <div className="flex justify-center px-5 py-3">
-          <div
-            className="flex items-center gap-2 font-sans text-xs font-semibold px-4 py-2 rounded-full"
-            style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)', color: '#F97316' }}
-          >
-            <span className="w-2 h-2 rounded-full bg-brand-gold animate-pulse flex-shrink-0" />
-            Restam poucas vagas
-          </div>
-        </div>
-
-        {/* Checkmarks */}
-        <div className="flex items-center justify-center gap-5 px-5 pb-4">
-          {['Gratuito', 'Bônus exclusivos'].map((item) => (
-            <span key={item} className="flex items-center gap-1.5 font-sans text-xs text-white/60">
-              <svg viewBox="0 0 20 20" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
-                <path d="M5 10l3.5 3.5L15 7" stroke="#10B981" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {item}
-            </span>
-          ))}
-        </div>
-
         {/* CTA */}
-        <div className="px-5 pb-2">
+        <div className="px-6 pb-4">
           <a
             href={WPP_LINK}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => { (window as any).fbq?.('track', 'Contact'); dismiss(); }}
-            className="block w-full text-center font-sans font-bold text-base text-white uppercase tracking-wide py-4 rounded-xl transition-all duration-300"
+            className="block w-full text-center font-sans font-bold uppercase text-white rounded-xl transition-all duration-300"
             style={{
-              background: 'linear-gradient(135deg, #F97316, #EA580C)',
-              boxShadow: '0 0 24px rgba(249,115,22,0.45)',
+              fontSize: '0.9rem',
+              letterSpacing: '0.07em',
+              padding: '16px 20px',
+              backgroundColor: '#10B981',
+              boxShadow: '0 0 20px rgba(16,185,129,0.35)',
+              textDecoration: 'none',
             }}
           >
-            Sim! Quero minha vaga
+            SIM, QUERO MINHA VAGA
           </a>
         </div>
 
-        {/* Dismiss link */}
-        <div className="px-5 pb-6 text-center">
+        {/* Dismiss */}
+        <div className="px-6 pb-5 text-center">
           <button
             onClick={dismiss}
-            className="font-sans text-xs text-white/30 hover:text-white/50 transition-colors underline underline-offset-2"
+            className="font-sans transition-colors"
+            style={{
+              fontSize: '11px',
+              color: 'rgba(241,241,241,0.25)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              textUnderlineOffset: '3px',
+            }}
           >
-            Não, prefiro perder esta oportunidade
+            Nao, prefiro perder esta oportunidade
           </button>
         </div>
       </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.85); }
+        }
+      `}</style>
     </div>
   );
 };
