@@ -6,12 +6,12 @@ import { ExitIntentPopup } from './components/ExitIntentPopup';
 const App: React.FC = () => {
   return (
     <>
-    <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-between py-6 px-4 md:px-8 lg:px-16 overflow-hidden bg-brand-navy bg-gradient-to-br from-[#0A1929] via-[#0f233a] to-[#050c14]">
+    <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-between py-6 px-4 md:px-8 lg:px-16 overflow-hidden bg-brand-navy bg-gradient-to-br from-[#141414] via-[#1C1C1C] to-[#0D0D0D]">
       {/* Noise Texture Overlay */}
       <div className="absolute inset-0 pointer-events-none bg-noise z-0 mix-blend-overlay opacity-30"></div>
 
       {/* Background Glow Effect */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-brand-gold/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-brand-gold/8 rounded-full blur-[100px] pointer-events-none z-0"></div>
 
       {/* 1. LOGO */}
       <header className="relative z-10 w-full flex justify-center flex-none">
@@ -26,16 +26,14 @@ const App: React.FC = () => {
 
         {/* 2. HEADLINE */}
         <h1 className="font-serif text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.1] font-bold text-balance drop-shadow-lg">
-          EM UMA ÚNICA AULA VOU ENTREGAR O PLANO PARA VOCÊ{' '}
-          <span className="text-brand-gold italic">LOTAR SUA AGENDA</span>{' '}
-          SEM PRECISAR{' '}
-          <span className="text-brand-gold italic">CRIAR CONTEÚDO.</span>
+          O PROBLEMA NÃO É A SUA COMPETÊNCIA.{' '}
+          <span className="text-brand-gold italic">É QUE NINGUÉM TE ENSINOU</span>{' '}
+          A ENCHER SUA AGENDA.
         </h1>
 
         {/* 3. SUB-HEADLINE */}
         <p className="font-sans text-sm sm:text-base md:text-xl lg:text-2xl text-brand-offwhite/80 max-w-3xl leading-relaxed text-balance">
-          Você vai sair com o MAPA, a ESTRATÉGIA DE TRÁFEGO e o ROTEIRO para atrair
-          pacientes particulares recorrentes, resgatando sua liberdade e sua dignidade profissional.
+          Em uma aula ao vivo, vou mostrar o sistema exato que terapeutas usam para atrair pacientes particulares toda semana — sem depender de indicação, sem criar conteúdo no Instagram.
         </p>
 
         {/* ACTION AREA */}
@@ -53,7 +51,7 @@ const App: React.FC = () => {
       {/* 6. FOOTER */}
       <footer className="relative z-10 flex-none text-center mt-4">
         <p className="font-sans text-[10px] md:text-xs text-brand-offwhite/40 tracking-wide flex items-center justify-center gap-1.5">
-          <span className="text-brand-gold">🔒</span> Evento Fechado para Profissionais de Saúde Mental.
+          <span className="text-brand-gold">🔒</span> Aula ao vivo. Gratuita. Para terapeutas e psicanalistas.
         </p>
       </footer>
     </main>

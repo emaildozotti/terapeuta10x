@@ -8,7 +8,8 @@ export const CtaButton: React.FC = () => {
       href={WPP_LINK}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative w-full max-w-md bg-brand-green hover:bg-[#0ea271] text-white font-sans font-bold text-base md:text-xl py-4 md:py-5 px-8 rounded-lg shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 overflow-hidden block text-center no-underline"
+      className="group relative w-full max-w-md text-white font-sans font-bold text-base md:text-xl py-4 md:py-5 px-8 rounded-lg shadow-[0_0_20px_rgba(249,115,22,0.45)] hover:shadow-[0_0_30px_rgba(249,115,22,0.65)] transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 overflow-hidden block text-center no-underline"
+      style={{ background: 'linear-gradient(135deg, #F97316, #EA580C)' }}
       aria-label="Garantir minha vaga gratuita"
     >
       {/* Shine Effect */}

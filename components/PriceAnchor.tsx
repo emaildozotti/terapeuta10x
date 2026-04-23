@@ -6,7 +6,7 @@ export const PriceAnchor: React.FC = () => {
       <span className="text-brand-offwhite/50 line-through decoration-brand-offwhite/50">
         DE R$ 997,00
       </span>
-      <span className="text-brand-green font-bold animate-pulse">
+      <span className="text-brand-gold font-bold animate-pulse">
         POR R$ 0,00
       </span>
     </div>

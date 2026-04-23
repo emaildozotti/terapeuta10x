@@ -41,9 +41,9 @@ export const ExitIntentPopup: React.FC = () => {
       <div
         className="relative w-full max-w-sm rounded-2xl overflow-hidden"
         style={{
-          background: 'linear-gradient(160deg, #0f233a 0%, #0A1929 60%, #050c14 100%)',
-          border: '1px solid rgba(212,175,55,0.25)',
-          boxShadow: '0 0 60px rgba(212,175,55,0.08), 0 24px 48px rgba(0,0,0,0.6)',
+          background: 'linear-gradient(160deg, #1C1C1C 0%, #141414 60%, #0D0D0D 100%)',
+          border: '1px solid rgba(249,115,22,0.25)',
+          boxShadow: '0 0 60px rgba(249,115,22,0.08), 0 24px 48px rgba(0,0,0,0.6)',
         }}
       >
         {/* Top bar */}
@@ -81,13 +81,13 @@ export const ExitIntentPopup: React.FC = () => {
         {/* Body */}
         <div className="px-5 pb-2 text-center">
           <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-tight text-balance mb-3">
-            Você está prestes a perder{' '}
-            <span className="text-brand-gold italic">sua vaga!</span>
+            Você vai continuar{' '}
+            <span className="text-brand-gold italic">dependendo de indicação?</span>
           </h2>
           <p className="font-sans text-sm text-white/70 leading-relaxed">
-            A aula acontece{' '}
+            A aula é{' '}
             <span className="text-brand-gold font-semibold">essa segunda às 20h</span>{' '}
-            — e as vagas estão acabando.
+            — e é de graça. Não faz sentido perder.
           </p>
         </div>
 
@@ -95,7 +95,7 @@ export const ExitIntentPopup: React.FC = () => {
         <div className="flex justify-center px-5 py-3">
           <div
             className="flex items-center gap-2 font-sans text-xs font-semibold px-4 py-2 rounded-full"
-            style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', color: '#d4af37' }}
+            style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)', color: '#F97316' }}
           >
             <span className="w-2 h-2 rounded-full bg-brand-gold animate-pulse flex-shrink-0" />
             Restam poucas vagas
@@ -123,8 +123,8 @@ export const ExitIntentPopup: React.FC = () => {
             onClick={() => { (window as any).fbq?.('track', 'Contact'); dismiss(); }}
             className="block w-full text-center font-sans font-bold text-base text-white uppercase tracking-wide py-4 rounded-xl transition-all duration-300"
             style={{
-              background: 'linear-gradient(135deg, #10B981, #059669)',
-              boxShadow: '0 0 24px rgba(16,185,129,0.45)',
+              background: 'linear-gradient(135deg, #F97316, #EA580C)',
+              boxShadow: '0 0 24px rgba(249,115,22,0.45)',
             }}
           >
             Sim! Quero minha vaga
