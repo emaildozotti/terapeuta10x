@@ -25,10 +25,9 @@ const App: React.FC = () => {
 
 
         {/* 2. HEADLINE */}
-        <h1 className="font-serif text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.1] font-bold text-balance drop-shadow-lg">
-          O PROBLEMA NÃO É A SUA COMPETÊNCIA.{' '}
-          <span className="text-brand-gold italic">É QUE NINGUÉM TE ENSINOU</span>{' '}
-          A ENCHER SUA AGENDA.
+        <h1 className="font-serif text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.15] font-bold text-balance drop-shadow-lg">
+          VOCÊ SE FORMOU PRA CUIDAR DE PESSOAS.{' '}
+          <span className="text-brand-gold">NÃO PRA FICAR ESPERANDO INDICAÇÃO.</span>
         </h1>
 
         {/* 3. SUB-HEADLINE */}

@@ -80,7 +80,7 @@ export const ExitIntentPopup: React.FC = () => {
 
         {/* Body */}
         <div className="px-5 pb-2 text-center">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-tight text-balance mb-3">
+          <h2 className="font-sans font-extrabold text-2xl sm:text-3xl leading-tight text-balance mb-3">
             Você vai continuar{' '}
             <span className="text-brand-gold italic">dependendo de indicação?</span>
           </h2>
