@@ -171,7 +171,7 @@ const App: React.FC = () => {
                   textDecorationColor: 'rgba(241,241,241,0.3)',
                 }}
               >
-                DE R$ 97,00
+                DE R$97,00
               </span>
               <span
                 className="font-sans font-bold"
@@ -181,7 +181,7 @@ const App: React.FC = () => {
                   letterSpacing: '0.02em',
                 }}
               >
-                POR R$ 0,00
+                POR R$0,00
               </span>
             </div>
 
