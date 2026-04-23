@@ -51,7 +51,7 @@ const App: React.FC = () => {
             className="font-sans font-semibold uppercase tracking-widest text-center"
             style={{ fontSize: '11px', color: 'rgba(241,241,241,0.6)', letterSpacing: '0.25em' }}
           >
-            ESTA SEGUNDA &bull; 20H &bull; AO VIVO NO MEET
+            SEGUNDA-FEIRA &bull; 20H &bull; AO VIVO NO MEET
           </span>
         </div>
 
